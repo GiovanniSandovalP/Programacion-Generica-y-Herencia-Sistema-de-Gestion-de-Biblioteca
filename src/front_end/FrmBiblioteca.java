@@ -68,7 +68,10 @@ public class FrmBiblioteca extends JFrame {
 
         cmbTipo.addActionListener(e -> actualizarCamposTipo());
         btnAgregar.addActionListener(e -> agregarTrabajo());
+        btnConsultar.addActionListener(e -> consultarTrabajo());
         btnMostrarTodos.addActionListener(e -> refrescarListado());
+        btnEliminar.addActionListener(e -> eliminarTrabajo());
+        btnVaciar.addActionListener(e -> vaciarBiblioteca());
 
         setSize(880, 660);
         setMinimumSize(new Dimension(780, 580));
@@ -228,6 +231,74 @@ public class FrmBiblioteca extends JFrame {
         } catch (IllegalArgumentException | IllegalStateException | IndexOutOfBoundsException e) {
             mostrarError(e.getMessage());
         }
+    }
+
+    private void consultarTrabajo() {
+        try {
+            int posicion = leerEntero(txtPosicion, "posición");
+            Trabajo trabajo = biblioteca.mostrarTrabajo(posicion);
+
+            if (trabajo == null) {
+                mostrarInfo("La posición " + posicion + " está vacía.");
+                return;
+            }
+
+            txtSalida.setText("Trabajo en la posición " + posicion + ":\n\n" + trabajo);
+            txtSalida.setCaretPosition(0);
+        } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
+            mostrarError(e.getMessage());
+        }
+    }
+
+    private void eliminarTrabajo() {
+        try {
+            int posicion = leerEntero(txtPosicion, "posición");
+
+            if (biblioteca.mostrarTrabajo(posicion) == null) {
+                mostrarInfo("La posición " + posicion + " está vacía.");
+                return;
+            }
+
+            int opcion = JOptionPane.showConfirmDialog(this,
+                    "¿Eliminar el trabajo de la posición " + posicion + "?",
+                    "Confirmar eliminación",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE);
+
+            if (opcion != JOptionPane.YES_OPTION) {
+                return;
+            }
+
+            Trabajo eliminado = biblioteca.eliminarTrabajo(posicion);
+            txtPosicion.setText("");
+            refrescarListado();
+            mostrarInfo("Se eliminó el siguiente trabajo:\n\n" + eliminado);
+        } catch (IllegalArgumentException | IllegalStateException | IndexOutOfBoundsException e) {
+            mostrarError(e.getMessage());
+        }
+    }
+
+    private void vaciarBiblioteca() {
+        if (biblioteca.isEmpty()) {
+            mostrarInfo("La biblioteca ya está vacía.");
+            return;
+        }
+
+        int opcion = JOptionPane.showConfirmDialog(this,
+                "¿Eliminar todas las publicaciones de la biblioteca?",
+                "Confirmar vaciado",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+
+        if (opcion != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        biblioteca.vaciarBiblioteca();
+        refrescarListado();
+        limpiarCamposCaptura();
+        mostrarInfo("La biblioteca se vació correctamente. isEmpty(): "
+                + biblioteca.isEmpty());
     }
 
     private Trabajo construirTrabajo() {
