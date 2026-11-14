@@ -1,5 +1,10 @@
 package front_end;
 
+import back_end.BibliotecaGenericaArreglo;
+import back_end.modelo.Articulo;
+import back_end.modelo.Libro;
+import back_end.modelo.Revista;
+import back_end.modelo.Trabajo;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -15,6 +20,7 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -23,7 +29,10 @@ import javax.swing.SwingConstants;
 
 public class FrmBiblioteca extends JFrame {
 
-    private static final int CAPACIDAD = 10;
+    private static final int CAPACIDAD = 100;
+
+    private final BibliotecaGenericaArreglo<Trabajo> biblioteca =
+            new BibliotecaGenericaArreglo<>(CAPACIDAD);
 
     private JComboBox<String> cmbTipo;
     private JTextField txtTitulo;
@@ -58,6 +67,8 @@ public class FrmBiblioteca extends JFrame {
         add(crearPanelAcciones(), BorderLayout.SOUTH);
 
         cmbTipo.addActionListener(e -> actualizarCamposTipo());
+        btnAgregar.addActionListener(e -> agregarTrabajo());
+        btnMostrarTodos.addActionListener(e -> refrescarListado());
 
         setSize(880, 660);
         setMinimumSize(new Dimension(780, 580));
@@ -203,5 +214,100 @@ public class FrmBiblioteca extends JFrame {
         if (!esArticulo) {
             txtConferencia.setText("");
         }
+    }
+
+    private void agregarTrabajo() {
+        try {
+            Trabajo trabajo = construirTrabajo();
+            int posicion = leerEntero(txtPosicion, "posición");
+
+            biblioteca.agregarTrabajo(trabajo, posicion);
+            refrescarListado();
+            limpiarCamposCaptura();
+            mostrarInfo("Trabajo agregado correctamente en la posición " + posicion + ".");
+        } catch (IllegalArgumentException | IllegalStateException | IndexOutOfBoundsException e) {
+            mostrarError(e.getMessage());
+        }
+    }
+
+    private Trabajo construirTrabajo() {
+        String titulo = leerTexto(txtTitulo, "título");
+        String autor = leerTexto(txtAutor, "autor");
+        int anio = leerEntero(txtAnio, "año de publicación");
+        String tipo = (String) cmbTipo.getSelectedItem();
+
+        if ("Libro".equals(tipo)) {
+            return new Libro(titulo, autor, anio, leerEntero(txtPaginas, "número de páginas"));
+        }
+        if ("Revista".equals(tipo)) {
+            return new Revista(titulo, autor, anio, leerEntero(txtEdicion, "número de edición"));
+        }
+        return new Articulo(titulo, autor, anio, leerTexto(txtConferencia, "nombre de conferencia"));
+    }
+
+    private String leerTexto(JTextField campo, String nombre) {
+        String valor = campo.getText().trim();
+        if (valor.isEmpty()) {
+            throw new IllegalArgumentException("El campo " + nombre + " no puede estar vacío.");
+        }
+        return valor;
+    }
+
+    private int leerEntero(JTextField campo, String nombre) {
+        String valor = campo.getText().trim();
+        if (valor.isEmpty()) {
+            throw new IllegalArgumentException("El campo " + nombre + " no puede estar vacío.");
+        }
+        try {
+            return Integer.parseInt(valor);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("El campo " + nombre + " debe ser un número entero válido.");
+        }
+    }
+
+    private void refrescarListado() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Capacidad: ").append(biblioteca.getCapacidad())
+                .append(" | Ocupadas: ").append(biblioteca.getCantidad())
+                .append("\n\n");
+
+        int encontrados = 0;
+        for (int i = 0; i < biblioteca.getCapacidad(); i++) {
+            Trabajo trabajo = biblioteca.mostrarTrabajo(i);
+            if (trabajo != null) {
+                sb.append("[").append(i).append("] ").append(trabajo).append("\n");
+                encontrados++;
+            }
+        }
+
+        if (encontrados == 0) {
+            sb.append("La biblioteca está vacía.");
+        }
+
+        txtSalida.setText(sb.toString());
+        txtSalida.setCaretPosition(0);
+        lblCapacidad.setText("Capacidad del arreglo: " + biblioteca.getCapacidad()
+                + " | Ocupadas: " + biblioteca.getCantidad());
+    }
+
+    private void limpiarCamposCaptura() {
+        txtTitulo.setText("");
+        txtAutor.setText("");
+        txtAnio.setText("");
+        txtPosicion.setText("");
+        txtPaginas.setText("");
+        txtEdicion.setText("");
+        txtConferencia.setText("");
+        txtTitulo.requestFocusInWindow();
+    }
+
+    private void mostrarInfo(String mensaje) {
+        JOptionPane.showMessageDialog(this, mensaje, "Información",
+                JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void mostrarError(String mensaje) {
+        JOptionPane.showMessageDialog(this, mensaje, "Error",
+                JOptionPane.ERROR_MESSAGE);
     }
 }
